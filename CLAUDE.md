@@ -2,11 +2,30 @@
 
 ## 产品定位
 
-**Agent Native 的 Markdown 编辑器。**
+**Markdown as Database 的原生编辑器与模板渲染平台。**
 
-面向 Agent-to-Agent、Agent-to-Human 之间的新型协作方式。当前 v1.0 聚焦于核心体验：AI Agent 修改 .md 文件时，ColaMD 自动检测变化并实时显示最新内容，让人类和 Agent 的协作像结对编程一样流畅。
+### 解决的核心问题
 
-后续会随着 Agent 生态的发展持续迭代。
+HTML 难改——结构、样式、内容全混在一起，人改麻烦，Agent 改也要理解整个文件。
+
+解法：把内容从 HTML 里剥离出来，放进 markdown。HTML 变成纯模板，markdown 变成数据库。改内容只改 markdown，完全不碰 HTML。
+
+### 战略方向
+
+- **内容层**：`.md` 文件，字段固定，人和 Agent 都能轻松编辑
+- **模板层**：各种 HTML 模板（PPT、游戏化界面、博客、简历、产品落地页……）
+- **ColaMD**：连接两者的工具，也是这个生态的入口
+
+一份 markdown，多种渲染形态。未来第三方可以基于同一份 markdown 做自己的模板。
+
+### 核心理念：Markdown as Database
+
+Markdown 不只是文档，而是**结构化内容的数据源**。
+
+- **Markdown = 数据**：用固定字段（frontmatter + 约定的 section 结构）承载内容，Agent 只需按字段改内容
+- **HTML 模板 = 视图**：模板负责样式、动效、交互，不关心内容
+- **解耦**：换模板就是换皮，换内容不影响模板
+- **简单约定优先**：宁可让 markdown 字段固定一些，也不要让模板去猜语义
 
 ## 设计哲学
 

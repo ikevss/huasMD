@@ -7,6 +7,8 @@ export interface ElectronAPI {
   saveFileAs: (content: string) => Promise<boolean>
   exportPDF: () => Promise<boolean>
   exportHTML: (html: string) => Promise<boolean>
+  newSlides: () => Promise<string | null>
+  openAsSlides: () => Promise<boolean>
   loadCustomTheme: () => Promise<{ name: string; css: string } | null>
   loadThemeCSS: (fileName: string) => Promise<string | null>
   getPathForFile: (file: File) => string
@@ -19,6 +21,8 @@ export interface ElectronAPI {
   onMenuSaveAs: (callback: () => void) => void
   onMenuExportPDF: (callback: () => void) => void
   onMenuExportHTML: (callback: () => void) => void
+  onMenuNewSlides: (callback: () => void) => void
+  onMenuOpenAsSlides: (callback: () => void) => void
   onSetTheme: (callback: (theme: string) => void) => void
   onSetCustomCSS: (callback: (css: string) => void) => void
   onMenuImportTheme: (callback: () => void) => void
@@ -32,6 +36,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveFileAs: (content: string) => ipcRenderer.invoke('save-file-as', content),
   exportPDF: () => ipcRenderer.invoke('export-pdf'),
   exportHTML: (html: string) => ipcRenderer.invoke('export-html', html),
+  newSlides: () => ipcRenderer.invoke('new-slides'),
+  openAsSlides: () => ipcRenderer.invoke('open-as-slides'),
   loadCustomTheme: () => ipcRenderer.invoke('load-custom-theme'),
   loadThemeCSS: (fileName: string) => ipcRenderer.invoke('load-theme-css', fileName),
   getPathForFile: (file: File) => webUtils.getPathForFile(file),
@@ -59,6 +65,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   onMenuExportHTML: (callback: () => void) => {
     ipcRenderer.on('menu-export-html', () => callback())
+  },
+  onMenuNewSlides: (callback: () => void) => {
+    ipcRenderer.on('menu-new-slides', () => callback())
+  },
+  onMenuOpenAsSlides: (callback: () => void) => {
+    ipcRenderer.on('menu-open-as-slides', () => callback())
   },
   onSetTheme: (callback: (theme: string) => void) => {
     ipcRenderer.on('set-theme', (_event, theme) => callback(theme))

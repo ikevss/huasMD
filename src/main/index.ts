@@ -1,7 +1,9 @@
 import { app, BrowserWindow, ipcMain, dialog, Menu, shell } from 'electron'
-import { join, basename } from 'path'
+import { join, basename, dirname, extname } from 'path'
 import { readFile, writeFile, readdir, copyFile, mkdir } from 'fs/promises'
-import { watch, FSWatcher, existsSync, readdirSync } from 'fs'
+import { watch, FSWatcher, existsSync, readdirSync, readFileSync, createServer } from 'fs'
+import { IncomingMessage, ServerResponse } from 'http'
+import { createServer as createHttpServer } from 'http'
 
 // Custom themes directory
 const themesDir = join(app.getPath('home'), '.colamd', 'themes')
@@ -379,6 +381,133 @@ ipcMain.handle('export-html', async (event, htmlContent: string) => {
   }
 })
 
+// ─── Slides feature ──────────────────────────────────────────────────────────
+
+const slidesTemplateDir = app.isPackaged
+  ? join(process.resourcesPath, 'templates', 'slides')
+  : join(__dirname, '../../resources/templates/slides')
+
+// Per-directory HTTP servers for slides preview: dir -> { server, port }
+const slidesServers = new Map<string, { port: number; server: ReturnType<typeof createHttpServer> }>()
+
+const MIME: Record<string, string> = {
+  '.html': 'text/html',
+  '.md': 'text/plain',
+  '.css': 'text/css',
+  '.js': 'application/javascript',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.mp4': 'video/mp4',
+  '.webm': 'video/webm',
+  '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon',
+}
+
+function getOrCreateSlidesServer(dir: string): Promise<number> {
+  const existing = slidesServers.get(dir)
+  if (existing) return Promise.resolve(existing.port)
+
+  return new Promise((resolve, reject) => {
+    const server = createHttpServer((req: IncomingMessage, res: ServerResponse) => {
+      const url = req.url === '/' ? '/template.html' : (req.url || '/')
+      const filePath = join(dir, url.split('?')[0])
+      const ext = extname(filePath).toLowerCase()
+      const mime = MIME[ext] || 'application/octet-stream'
+      try {
+        const data = readFileSync(filePath)
+        res.writeHead(200, { 'Content-Type': mime })
+        res.end(data)
+      } catch {
+        res.writeHead(404)
+        res.end('Not found')
+      }
+    })
+    server.listen(0, '127.0.0.1', () => {
+      const addr = server.address()
+      if (!addr || typeof addr === 'string') { reject(new Error('no port')); return }
+      slidesServers.set(dir, { port: addr.port, server })
+      resolve(addr.port)
+    })
+    server.on('error', reject)
+  })
+}
+
+// New Slides: copy template md to user-chosen location, open it
+ipcMain.handle('new-slides', async (event) => {
+  const win = getWinFromEvent(event)
+  if (!win) return null
+  const result = await dialog.showSaveDialog(win, {
+    title: 'Create New Slides',
+    defaultPath: 'slides.md',
+    filters: [{ name: 'Markdown', extensions: ['md'] }]
+  })
+  if (result.canceled || !result.filePath) return null
+  try {
+    await copyFile(join(slidesTemplateDir, 'slides-template.md'), result.filePath)
+    loadFileInWindow(win, result.filePath)
+    return result.filePath
+  } catch {
+    return null
+  }
+})
+
+// Open as Slides: serve the directory containing the current .md file
+// If no file is open, first create a new slides file (same as New Slides)
+ipcMain.handle('open-as-slides', async (event) => {
+  const win = getWinFromEvent(event)
+  if (!win) return false
+  const state = getState(win)
+
+  // No file open — create one first
+  if (!state.filePath) {
+    const result = await dialog.showSaveDialog(win, {
+      title: 'Create New Slides',
+      defaultPath: 'slides.md',
+      filters: [{ name: 'Markdown', extensions: ['md'] }]
+    })
+    if (result.canceled || !result.filePath) return false
+    try {
+      await copyFile(join(slidesTemplateDir, 'slides-template.md'), result.filePath)
+      loadFileInWindow(win, result.filePath)
+      state.filePath = result.filePath
+    } catch {
+      return false
+    }
+  }
+
+  const dir = dirname(state.filePath)
+  const mdName = basename(state.filePath)
+
+  // Copy template.html into the same directory if not already there
+  const templateDest = join(dir, 'template.html')
+  if (!existsSync(templateDest)) {
+    try {
+      await copyFile(join(slidesTemplateDir, 'template.html'), templateDest)
+    } catch {
+      return false
+    }
+  }
+
+  // Rename slides.md reference in template to match actual filename
+  // (template always fetches 'slides.md' — if file is named differently, patch it)
+  if (mdName !== 'slides.md') {
+    try {
+      let html = await readFile(templateDest, 'utf-8')
+      html = html.replace(/fetch\('slides\.md'\)/, `fetch('${mdName}')`)
+      await writeFile(templateDest, html, 'utf-8')
+    } catch { /* best effort */ }
+  }
+
+  try {
+    const port = await getOrCreateSlidesServer(dir)
+    shell.openExternal(`http://127.0.0.1:${port}/template.html`)
+    return true
+  } catch {
+    return false
+  }
+})
+
 ipcMain.handle('load-custom-theme', async (event) => {
   const win = getWinFromEvent(event)
   if (!win) return null
@@ -477,6 +606,11 @@ function buildMenu(): void {
           click: () => createWindow()
         },
         {
+          label: 'New Slides...',
+          accelerator: 'CmdOrCtrl+Shift+N',
+          click: () => sendToFocused('menu-new-slides')
+        },
+        {
           label: 'Open...',
           accelerator: 'CmdOrCtrl+O',
           click: () => sendToFocused('menu-open')
@@ -500,6 +634,11 @@ function buildMenu(): void {
         {
           label: 'Export HTML...',
           click: () => sendToFocused('menu-export-html')
+        },
+        {
+          label: 'Open as Slides',
+          accelerator: 'CmdOrCtrl+Shift+P',
+          click: () => sendToFocused('menu-open-as-slides')
         },
         { type: 'separator' },
         isMac ? { role: 'close' } : { role: 'quit' }

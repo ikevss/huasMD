@@ -24,8 +24,7 @@ async function init(): Promise<void> {
   api.onMenuSave(() => api.saveFile(getMarkdown()))
   api.onMenuSaveAs(() => api.saveFileAs(getMarkdown()))
   api.onMenuExportPDF(() => api.exportPDF())
-  api.onMenuExportHTML(() => {
-    const s = getComputedStyle(document.body)
+  api.onMenuExportHTML(() => {    const s = getComputedStyle(document.body)
     const v = (name: string) => s.getPropertyValue(name).trim()
     const bgColor = v('--bg-color')
     const textColor = v('--text-color')
@@ -81,6 +80,14 @@ img{max-width:100%}
   api.onSetCustomCSS((css) => {
     const theme = loadSavedTheme()
     applyTheme(theme, css)
+  })
+
+  api.onMenuNewSlides(async () => {
+    await api.newSlides()
+  })
+
+  api.onMenuOpenAsSlides(async () => {
+    await api.openAsSlides()
   })
 
   api.onMenuImportTheme(async () => {
