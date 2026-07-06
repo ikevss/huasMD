@@ -9,7 +9,7 @@
 <body>
   <div id="titlebar">
     <div id="agent-dot"></div>
-    <!-- Right-aligned icon group (kept as a group for layout flexibility) -->
+    <div style="flex:1"></div>
     <div id="titlebar-tools">
       <button id="slides-btn" class="tb-icon-btn" data-i18n-title="slides.open">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
@@ -49,10 +49,10 @@
     <!-- Right group: popover panels -->
     <div class="sb-group">
       <button class="sb-btn sb-pop" data-pop="theme" data-i18n-title="panel.theme">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
       </button>
       <button class="sb-btn sb-pop" data-pop="language" data-i18n-title="panel.language">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h8"/><line x1="18" y1="12" x2="20" y2="18"/><line x1="20" y1="12" x2="22" y2="18"/></svg>
       </button>
       <button class="sb-btn sb-pop" data-pop="export" data-i18n-title="panel.export">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -66,6 +66,15 @@
 
   <!-- Popover panel container (positioned dynamically above the trigger button) -->
   <div id="pop-panel" class="hidden"></div>
+
+  <!-- Search bar (hidden), shown on Ctrl+F -->
+  <div id="search-bar" class="hidden">
+    <input id="search-input" type="text" placeholder="查找..." spellcheck="false">
+    <span id="search-count"></span>
+    <button id="search-prev" class="search-nav" title="上一个">▲</button>
+    <button id="search-next" class="search-nav" title="下一个">▼</button>
+    <button id="search-close" class="search-nav" title="关闭">✕</button>
+  </div>
 
   <script type="module" src="./main.ts"></script>
 </body>

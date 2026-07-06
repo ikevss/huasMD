@@ -38,6 +38,7 @@ const dict: Record<Lang, Dict> = {
     'toc.title': '目录',
     'toc.empty': '暂无标题',
     'width.toggle': '切换全宽',
+    'search.placeholder': '查找...',
     // Misc
     'app.name': 'huasMD'
   },
@@ -69,6 +70,7 @@ const dict: Record<Lang, Dict> = {
     'toc.title': 'Outline',
     'toc.empty': 'No headings yet',
     'width.toggle': 'Toggle full width',
+    'search.placeholder': 'Find...',
     'app.name': 'huasMD'
   }
 }

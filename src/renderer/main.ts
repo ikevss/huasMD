@@ -371,6 +371,79 @@ img{max-width:100%}
   api.exportHTML(html)
 }
 
+// ─── Search (Ctrl+F) ──────────────────────────────────────────────────────────
+
+function initSearch(): void {
+  const searchBar = document.getElementById('search-bar') as HTMLElement
+  const searchInput = document.getElementById('search-input') as HTMLInputElement
+  const searchCount = document.getElementById('search-count') as HTMLElement
+  const prevBtn = document.getElementById('search-prev') as HTMLButtonElement
+  const nextBtn = document.getElementById('search-next') as HTMLButtonElement
+  const closeBtn = document.getElementById('search-close') as HTMLButtonElement
+
+  function countMatches(text: string): number {
+    if (!text) return 0
+    const pm = document.querySelector('#editor .ProseMirror')
+    if (!pm) return 0
+    const content = pm.textContent || ''
+    const escaped = text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    return (content.match(new RegExp(escaped, 'gi')) || []).length
+  }
+
+  function doSearch(backwards = false): void {
+    const text = searchInput.value
+    if (!text) return
+    const found = window.find(text, false, backwards, true, false, false, true)
+    const count = countMatches(text)
+    searchCount.textContent = count > 0 ? `${count}` : '0'
+  }
+
+  function showSearch(): void {
+    searchBar.classList.remove('hidden')
+    searchInput.value = ''
+    searchInput.placeholder = t('search.placeholder')
+    searchCount.textContent = ''
+    searchInput.focus()
+    // Clear any previous find highlight
+    window.getSelection()?.removeAllRanges()
+  }
+
+  function hideSearch(): void {
+    searchBar.classList.add('hidden')
+    window.getSelection()?.removeAllRanges()
+  }
+
+  document.addEventListener('keydown', (e) => {
+    // Ctrl+F / Cmd+F — open search
+    if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+      e.preventDefault()
+      showSearch()
+    }
+    // Esc — close search bar, close panels
+    if (e.key === 'Escape') {
+      if (!searchBar.classList.contains('hidden')) {
+        hideSearch()
+        e.preventDefault()
+      }
+    }
+  })
+
+  searchInput.addEventListener('input', () => {
+    doSearch()
+  })
+
+  searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      doSearch(e.shiftKey)
+    }
+  })
+
+  prevBtn.addEventListener('click', () => doSearch(true))
+  nextBtn.addEventListener('click', () => doSearch(false))
+  closeBtn.addEventListener('click', () => hideSearch())
+}
+
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
 async function init(): Promise<void> {
@@ -399,6 +472,9 @@ async function init(): Promise<void> {
 
   // Status bar
   initStatusbar()
+
+  // Search
+  initSearch()
 
   // Click outside to close any open panel/popover
   document.addEventListener('click', (e) => {
