@@ -547,6 +547,26 @@ async function init(): Promise<void> {
     }
   })
 
+  // Auto-update status
+  const updateIndicator = document.getElementById('update-indicator')
+  const updateText = document.getElementById('update-text')
+  api.onUpdateStatus((data) => {
+    if (!updateIndicator || !updateText) return
+    if (data.status === 'downloading') {
+      updateIndicator.className = ''
+      updateText.textContent = data.text || ''
+    } else if (data.status === 'ready') {
+      updateIndicator.className = ''
+      updateText.textContent = data.text || ''
+      updateIndicator.title = t('update.install')
+    }
+  })
+  if (updateIndicator) {
+    updateIndicator.addEventListener('click', () => {
+      api.installUpdate()
+    })
+  }
+
   // Drag & drop file open
   document.addEventListener('dragover', (e) => e.preventDefault())
   document.addEventListener('drop', async (e) => {

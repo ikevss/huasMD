@@ -31,6 +31,9 @@ export interface ElectronAPI {
   exportPptx: (content: string) => Promise<boolean>
   onMenuExportSlides: (callback: () => void) => void
   onAgentActivity: (callback: (state: string) => void) => void
+  checkUpdate: () => Promise<{ status: string; text?: string }>
+  installUpdate: () => Promise<void>
+  onUpdateStatus: (callback: (data: { status: string; text?: string }) => void) => void
 }
 
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -96,5 +99,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   onAgentActivity: (callback: (state: string) => void) => {
     ipcRenderer.on('agent-activity', (_event, state) => callback(state))
+  },
+  checkUpdate: () => ipcRenderer.invoke('check-update'),
+  installUpdate: () => ipcRenderer.invoke('install-update'),
+  onUpdateStatus: (callback: (data: { status: string; text?: string }) => void) => {
+    ipcRenderer.on('update-status', (_event, data) => callback(data))
   }
 } satisfies ElectronAPI)

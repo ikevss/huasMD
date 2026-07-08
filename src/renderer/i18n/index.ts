@@ -42,6 +42,8 @@ const dict: Record<Lang, Dict> = {
     'search.placeholder': '查找...',
     'agent.writing': 'AI 正在写入…',
     'agent.done': '写入完成',
+    'update.install': '点击安装更新',
+    'update.upToDate': '已是最新版本',
     // Misc
     'app.name': 'huasMD'
   },
@@ -77,6 +79,8 @@ const dict: Record<Lang, Dict> = {
     'search.placeholder': 'Find...',
     'agent.writing': 'AI Writing…',
     'agent.done': 'Write Complete',
+    'update.install': 'Click to install update',
+    'update.upToDate': 'Already up to date',
     'app.name': 'huasMD'
   }
 }

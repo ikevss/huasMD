@@ -5,6 +5,7 @@ import { watch, FSWatcher, existsSync, readdirSync, readFileSync, createServer }
 import { IncomingMessage, ServerResponse } from 'http'
 import { createServer as createHttpServer } from 'http'
 import { buildPPTX } from './export-pptx'
+import { autoUpdater } from 'electron-updater'
 
 // Custom themes directory
 const themesDir = join(app.getPath('home'), '.huasMD', 'themes')
@@ -846,9 +847,79 @@ function buildMenu(): void {
 
 // App lifecycle
 
+// ─── Auto-updater ──────────────────────────────────────────────────────────
+
+let updateDownloaded = false
+
+function setupAutoUpdater(): void {
+  // Only check on production builds (not dev)
+  if (!app.isPackaged) return
+
+  autoUpdater.autoDownload = true
+  autoUpdater.autoInstallOnAppQuit = false
+
+  autoUpdater.on('update-available', () => {
+    sendToAll('update-status', { status: 'downloading', text: '正在下载更新…' })
+  })
+
+  autoUpdater.on('download-progress', (progress) => {
+    sendToAll('update-status', {
+      status: 'downloading',
+      text: `下载中 ${Math.round(progress.percent)}%`
+    })
+  })
+
+  autoUpdater.on('update-downloaded', () => {
+    updateDownloaded = true
+    sendToAll('update-status', {
+      status: 'ready',
+      text: `新版本 ${autoUpdater.currentVersion.version} 已就绪`
+    })
+  })
+
+  autoUpdater.on('error', (err) => {
+    console.error('Auto-update error:', err.message)
+  })
+
+  // Check after a short delay (let the window load first)
+  setTimeout(() => {
+    autoUpdater.checkForUpdates().catch(() => {})
+  }, 10000)
+}
+
+function sendToAll(channel: string, data: unknown): void {
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (!win.isDestroyed()) win.webContents.send(channel, data)
+  }
+}
+
+// IPC: manual check for updates
+ipcMain.handle('check-update', async () => {
+  if (!app.isPackaged) return { status: 'dev' }
+  try {
+    const result = await autoUpdater.checkForUpdates()
+    if (!result) return { status: 'up-to-date' }
+    return updateDownloaded
+      ? { status: 'ready', text: `新版本 ${result.updateInfo.version} 已就绪` }
+      : { status: 'checking' }
+  } catch {
+    return { status: 'error' }
+  }
+})
+
+// IPC: install update now
+ipcMain.handle('install-update', () => {
+  if (updateDownloaded) {
+    autoUpdater.quitAndInstall(false, true)
+  }
+})
+
+// ─── App lifecycle ──────────────────────────────────────────────────────────
+
 app.whenReady().then(() => {
   ensureThemesDir()
   buildMenu()
+  setupAutoUpdater()
 
   // Check command line args for file paths
   const args = process.argv.slice(app.isPackaged ? 1 : 2)
