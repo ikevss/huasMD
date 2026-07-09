@@ -555,16 +555,29 @@ async function init(): Promise<void> {
     if (data.status === 'downloading') {
       updateIndicator.className = ''
       updateText.textContent = data.text || ''
+      updateIndicator.style.cursor = 'default'
     } else if (data.status === 'ready') {
       updateIndicator.className = ''
       updateText.textContent = data.text || ''
       updateIndicator.title = t('update.install')
+      updateIndicator.style.cursor = 'pointer'
+    } else if (data.status === 'error' || data.status === 'dismissed') {
+      updateIndicator.className = 'hidden'
     }
   })
   if (updateIndicator) {
     updateIndicator.addEventListener('click', () => {
-      api.installUpdate()
+      const text = updateText?.textContent || ''
+      if (text.includes('已就绪') || text.includes('ready')) {
+        api.installUpdate()
+      }
     })
+    // Right-click or double-click to dismiss
+    updateIndicator.addEventListener('contextmenu', (e) => {
+      e.preventDefault()
+      api.dismissUpdate()
+    })
+    updateIndicator.title = t('update.install') + ' | 右键关闭提示'
   }
 
   // Drag & drop file open

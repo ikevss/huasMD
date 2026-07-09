@@ -44,6 +44,7 @@ const dict: Record<Lang, Dict> = {
     'agent.writing': 'AI 正在写入…',
     'agent.done': '写入完成',
     'update.install': '点击安装更新',
+    'update.dismissHint': '右键关闭提示',
     'update.upToDate': '已是最新版本',
     // Misc
     'app.name': 'huasMD'

@@ -839,6 +839,13 @@ function buildMenu(): void {
       label: 'Help',
       submenu: [
         {
+          label: 'Check for Updates…',
+          click: () => {
+            updateDismissed = false
+            autoUpdater.checkForUpdates().catch(() => {})
+          }
+        },
+        {
           label: 'About huasMD',
           click: () => shell.openExternal('https://github.com/ikevss/huasMD')
         }
@@ -854,16 +861,19 @@ function buildMenu(): void {
 // ─── Auto-updater ──────────────────────────────────────────────────────────
 
 let updateDownloaded = false
+let updateDismissed = false
 
 function setupAutoUpdater(): void {
-  // Only check on production builds (not dev)
   if (!app.isPackaged) return
 
-  autoUpdater.autoDownload = true
+  autoUpdater.autoDownload = false  // We control downloading ourselves
   autoUpdater.autoInstallOnAppQuit = false
 
-  autoUpdater.on('update-available', () => {
-    sendToAll('update-status', { status: 'downloading', text: '正在下载更新…' })
+  autoUpdater.on('update-available', (info) => {
+    if (updateDismissed) return
+    // Start download and report progress
+    autoUpdater.downloadUpdate().catch(() => { sendToAll('update-status', { status: 'error', text: '' }) })
+    sendToAll('update-status', { status: 'downloading', text: `下载中…` })
   })
 
   autoUpdater.on('download-progress', (progress) => {
@@ -877,19 +887,46 @@ function setupAutoUpdater(): void {
     updateDownloaded = true
     sendToAll('update-status', {
       status: 'ready',
-      text: `新版本 ${autoUpdater.currentVersion.version} 已就绪`
+      text: `新版本 v${autoUpdater.currentVersion.version} 已就绪`
     })
   })
 
-  autoUpdater.on('error', (err) => {
-    console.error('Auto-update error:', err.message)
+  autoUpdater.on('error', () => {
+    sendToAll('update-status', { status: 'error', text: '' })
   })
 
-  // Check after a short delay (let the window load first)
+  // Check after a delay
   setTimeout(() => {
     autoUpdater.checkForUpdates().catch(() => {})
-  }, 10000)
+  }, 8000)
 }
+
+// IPC: manual check
+ipcMain.handle('check-update', async () => {
+  if (!app.isPackaged) return { status: 'dev' }
+  updateDismissed = false
+  try {
+    const result = await autoUpdater.checkForUpdates()
+    if (!result) return { status: 'up-to-date' }
+    return { status: 'checking' }
+  } catch {
+    return { status: 'error' }
+  }
+})
+
+// IPC: dismiss update notification
+ipcMain.handle('dismiss-update', () => {
+  updateDismissed = true
+  updateDownloaded = false
+  sendToAll('update-status', { status: 'dismissed' })
+})
+
+// IPC: install update
+ipcMain.handle('install-update', () => {
+  if (updateDownloaded) {
+    autoUpdater.quitAndInstall(false, true)
+  }
+})
 
 function sendToAll(channel: string, data: unknown): void {
   for (const win of BrowserWindow.getAllWindows()) {

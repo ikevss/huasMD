@@ -33,6 +33,7 @@ export interface ElectronAPI {
   onAgentActivity: (callback: (state: string) => void) => void
   checkUpdate: () => Promise<{ status: string; text?: string }>
   installUpdate: () => Promise<void>
+  dismissUpdate: () => Promise<void>
   onUpdateStatus: (callback: (data: { status: string; text?: string }) => void) => void
 }
 
@@ -102,6 +103,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   checkUpdate: () => ipcRenderer.invoke('check-update'),
   installUpdate: () => ipcRenderer.invoke('install-update'),
+  dismissUpdate: () => ipcRenderer.invoke('dismiss-update'),
   onUpdateStatus: (callback: (data: { status: string; text?: string }) => void) => {
     ipcRenderer.on('update-status', (_event, data) => callback(data))
   }
